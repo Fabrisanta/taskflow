@@ -1,16 +1,112 @@
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 void main() {
   runApp(const TaskFlowApp());
 }
+
+// Modelo de tarea
+class Task {
+  final int id;
+  final String title;
+  final String description;
+  final String priority;
+  final String status;
+
+  const Task({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.priority,
+    required this.status,
+  });
+}
+
+// Cinco tareas de prueba
+const List<Task> tasks = [
+  Task(
+    id: 1,
+    title: 'Estudiar Flutter',
+    description: 'Repasar widgets y layouts.',
+    priority: 'Alta',
+    status: 'Pendiente',
+  ),
+  Task(
+    id: 2,
+    title: 'Realizar tarea de programación',
+    description: 'Completar los ejercicios de clase.',
+    priority: 'Alta',
+    status: 'Pendiente',
+  ),
+  Task(
+    id: 3,
+    title: 'Leer documentación',
+    description: 'Revisar la documentación de Dart.',
+    priority: 'Media',
+    status: 'Pendiente',
+  ),
+  Task(
+    id: 4,
+    title: 'Organizar apuntes',
+    description: 'Ordenar los apuntes de la semana.',
+    priority: 'Baja',
+    status: 'Completada',
+  ),
+  Task(
+    id: 5,
+    title: 'Preparar exposición',
+    description: 'Revisar los temas para presentar.',
+    priority: 'Media',
+    status: 'Pendiente',
+  ),
+];
+
+// Configuración de rutas
+final GoRouter router = GoRouter(
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const WelcomeScreen(),
+      routes: [
+        GoRoute(
+          path: 'task/:id',
+          builder: (context, state) {
+            final id = int.tryParse(
+              state.pathParameters['id'] ?? '',
+            );
+
+            Task? selectedTask;
+
+            for (final task in tasks) {
+              if (task.id == id) {
+                selectedTask = task;
+                break;
+              }
+            }
+
+            if (selectedTask == null) {
+              return const Scaffold(
+                body: Center(
+                  child: Text('Tarea no encontrada'),
+                ),
+              );
+            }
+
+            return TaskDetailScreen(task: selectedTask);
+          },
+        ),
+      ],
+    ),
+  ],
+);
 
 class TaskFlowApp extends StatelessWidget {
   const TaskFlowApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'TaskFlow',
       theme: ThemeData(
@@ -19,35 +115,18 @@ class TaskFlowApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const WelcomeScreen(),
+      routerConfig: router,
     );
   }
 }
 
-// Modelo de una tarea
-class Task {
-  final String title;
-  final String description;
-  final String priority;
-  final String status;
-
-  const Task({
-    required this.title,
-    required this.description,
-    required this.priority,
-    required this.status,
-  });
-}
-
-// Tarjeta reutilizable
+// Componente reutilizable
 class TaskCard extends StatelessWidget {
   final Task task;
-  final VoidCallback onViewDetail;
 
   const TaskCard({
     super.key,
     required this.task,
-    required this.onViewDetail,
   });
 
   @override
@@ -55,6 +134,9 @@ class TaskCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
+        onTap: () {
+          context.push('/task/${task.id}');
+        },
         leading: const Icon(Icons.assignment_outlined),
         title: Text(task.title),
         subtitle: Column(
@@ -70,13 +152,16 @@ class TaskCard extends StatelessWidget {
         trailing: IconButton(
           icon: const Icon(Icons.visibility_outlined),
           tooltip: 'Ver detalle',
-          onPressed: onViewDetail,
+          onPressed: () {
+            context.push('/task/${task.id}');
+          },
         ),
       ),
     );
   }
 }
 
+// Pantalla principal con listado
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
@@ -90,39 +175,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   int pendingTasks = 3;
 
-  final List<Task> tasks = const [
-    Task(
-      title: 'Estudiar Flutter',
-      description: 'Repasar widgets y layouts.',
-      priority: 'Alta',
-      status: 'Pendiente',
-    ),
-    Task(
-      title: 'Realizar tarea de programación',
-      description: 'Completar los ejercicios de clase.',
-      priority: 'Alta',
-      status: 'Pendiente',
-    ),
-    Task(
-      title: 'Leer documentación',
-      description: 'Revisar la documentación de Dart.',
-      priority: 'Media',
-      status: 'Pendiente',
-    ),
-    Task(
-      title: 'Organizar apuntes',
-      description: 'Ordenar los apuntes de la semana.',
-      priority: 'Baja',
-      status: 'Completada',
-    ),
-    Task(
-      title: 'Preparar exposición',
-      description: 'Revisar los temas para presentar.',
-      priority: 'Media',
-      status: 'Pendiente',
-    ),
-  ];
-
   void addTask() {
     setState(() {
       pendingTasks++;
@@ -135,33 +187,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     setState(() {
       pendingTasks--;
     });
-  }
-
-  void showTaskDetail(Task task) {
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(task.title),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(task.description),
-              const SizedBox(height: 12),
-              Text('Prioridad: ${task.priority}'),
-              Text('Estado: ${task.status}'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -234,14 +259,68 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               child: ListView.builder(
                 itemCount: tasks.length,
                 itemBuilder: (context, index) {
-                  final task = tasks[index];
-
                   return TaskCard(
-                    task: task,
-                    onViewDetail: () => showTaskDetail(task),
+                    task: tasks[index],
                   );
                 },
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Pantalla de detalle
+class TaskDetailScreen extends StatelessWidget {
+  final Task task;
+
+  const TaskDetailScreen({
+    super.key,
+    required this.task,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Detalle de tarea'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            context.pop();
+          },
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              task.title,
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Descripción',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(task.description),
+            const SizedBox(height: 20),
+            Text(
+              'Prioridad: ${task.priority}',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Estado: ${task.status}',
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Identificador: ${task.id}',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
